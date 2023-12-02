@@ -35,10 +35,10 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.observation_num = observation_num
         self.num_action = num_action
-       
-        self.layer1 = nn.Linear(self.observation_num, 64)
-        self.layer2 = nn.Linear(64, 32)
-        self.layer3 = nn.Linear(32, self.num_action)
+
+        self.layer1 = nn.Linear(self.observation_num, 128)
+        self.layer2 = nn.Linear(128, 64)
+        self.layer3 = nn.Linear(64, self.num_action)
 
 
     def forward(self,x):
@@ -48,13 +48,12 @@ class Model(nn.Module):
         return x
 
 
-
 class Agent:
     def __init__(self,
                  env,
                  observation_space_n,
                  action_space_n,
-                 memory_capacity=100_000,
+                 memory_capacity=50_000,
                  discount=0.99,
                  learning_rate=0.0001,
                  exp_rate=0.1,
@@ -67,7 +66,6 @@ class Agent:
 
         self.action_space_n = action_space_n
         self.observation_space_n = observation_space_n
-
 
         # parameters
         self.memory_capacity = memory_capacity
@@ -170,8 +168,7 @@ class Agent:
         self.optimizer.zero_grad()
         loss.backward()
 
-        # Uncomment for clipping:
-        #
+        # Graident clipping
         CLIP_NORM = 0.6
         torch.nn.utils.clip_grad_norm_(self.model.parameters(),CLIP_NORM)
 
@@ -200,7 +197,6 @@ class Agent:
             state, _ = env.reset()
 
             for s in range(steps):
-                print(state[9])
                 action = agent.action(state)
                 next_state, reward, terminated, truncated, _ = env.step(action.item())
 
@@ -230,7 +226,7 @@ class Agent:
                     break
 
             self.rewards.append(ep_reward)
-            print("episode: " + str(episode) + " reward: " + str(ep_reward))
+            print("episode: " + str(episode) + " reward: " + str(round(ep_reward, 3)))
             if episode % 100 == 0:
                 print(f'exp_rate: {agent.get_exploration_rate()}')
             self.update_exploration_rate()
@@ -247,11 +243,11 @@ class Agent:
         exit()
 
 
-batch_size = 32 
+batch_size = 128 # For memory buffer batch
 update_frequency = 1000
 
 obs, _ = env.reset()
-input_size = obs.shape[0]
+input_size = obs.shape[0] 
 output_size = 2 # 2 possible actions
 
 agent = Agent(env, input_size, output_size)
@@ -260,6 +256,5 @@ agent = Agent(env, input_size, output_size)
 signal.signal(signal.SIGINT, agent.custom_interrupt_handler)
 
 agent.train(episodes=50_000)
-
 
 env.close()
